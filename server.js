@@ -1,4 +1,3 @@
-// redeploy trigger
 const express = require("express");
 const { Pool } = require("pg");
 
@@ -7,7 +6,6 @@ const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
 
-// PostgreSQL connection
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: {
@@ -15,7 +13,10 @@ const pool = new Pool({
   },
 });
 
-// Test DB connection
+app.get("/health", (req, res) => {
+  res.json({ status: "Backend is running!" });
+});
+
 app.get("/db-test", async (req, res) => {
   try {
     const result = await pool.query("SELECT NOW()");
@@ -26,8 +27,23 @@ app.get("/db-test", async (req, res) => {
   }
 });
 
-app.get("/health", (req, res) => {
-  res.json({ status: "Backend is running!" });
+app.get("/setup-db", async (req, res) => {
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS releases (
+        id SERIAL PRIMARY KEY,
+        artist_name TEXT NOT NULL,
+        title TEXT NOT NULL,
+        format TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT NOW()
+      )
+    `);
+
+    res.json({ message: "releases table created successfully" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Failed to create table");
+  }
 });
 
 app.listen(PORT, () => {
