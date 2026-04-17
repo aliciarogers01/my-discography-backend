@@ -45,7 +45,38 @@ app.get("/setup-db", async (req, res) => {
     res.status(500).send("Failed to create table");
   }
 });
+// Add a release
+app.post("/releases", async (req, res) => {
+  const { artist_name, title, format } = req.body;
 
+  try {
+    const result = await pool.query(
+      `INSERT INTO releases (artist_name, title, format)
+       VALUES ($1, $2, $3)
+       RETURNING *`,
+      [artist_name, title, format]
+    );
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Failed to add release");
+  }
+});
+
+// Get all releases
+app.get("/releases", async (req, res) => {
+  try {
+    const result = await pool.query(
+      "SELECT * FROM releases ORDER BY created_at DESC"
+    );
+
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Failed to fetch releases");
+  }
+});
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
